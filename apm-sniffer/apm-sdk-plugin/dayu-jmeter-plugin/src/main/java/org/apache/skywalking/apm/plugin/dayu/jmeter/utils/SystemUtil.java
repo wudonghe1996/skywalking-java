@@ -1,11 +1,33 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ */
+
 package org.apache.skywalking.apm.plugin.dayu.jmeter.utils;
 
-import org.apache.skywalking.apm.agent.core.context.ids.GlobalIdGenerator;
 import org.apache.skywalking.apm.agent.core.logging.api.ILog;
 import org.apache.skywalking.apm.agent.core.logging.api.LogManager;
 import org.apache.skywalking.apm.plugin.dayu.jmeter.common.TaskIdCache;
 
-import java.net.*;
+import java.net.Inet4Address;
+import java.net.InetAddress;
+import java.net.SocketException;
+import java.net.UnknownHostException;
+import java.net.InterfaceAddress;
+import java.net.NetworkInterface;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Enumeration;
@@ -14,17 +36,14 @@ public class SystemUtil {
 
     private static final ILog LOGGER = LogManager.getLogger(SystemUtil.class);
 
-    public static String getSw8(){
+    public static String getSw8() {
         Integer taskId = TaskIdCache.TASK_ID;
-        LOGGER.info("本次获取的TaskId：" + taskId);
-        if(taskId == null){
-            LOGGER.error("获取taskId失败");
+        if (taskId == null) {
             throw new RuntimeException();
         }
 
-        SnowFlakeIdGenerator.createInstance(0, 0,taskId);
-        String traceId = "dayu-"+ taskId + "-" + SnowFlakeIdGenerator.generateId();
-        LOGGER.info("本次TraceId: " + traceId);
+        SnowFlakeIdGenerator.createInstance(0, 0, taskId);
+        String traceId = "dayu-" + taskId + "-" + SnowFlakeIdGenerator.generateId();
         return StringUtil.join(
                 '-',
                 "1",
