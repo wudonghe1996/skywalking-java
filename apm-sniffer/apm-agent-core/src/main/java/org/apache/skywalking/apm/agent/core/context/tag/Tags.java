@@ -104,6 +104,14 @@ public final class Tags {
         public static final StringTag BODY = new StringTag(13, "http.body");
 
         public static final StringTag HEADERS = new StringTag(14, "http.headers");
+
+        public static final StringTag RESPONSE = new StringTag(24, "http.response");
+    }
+
+    public static final class EXCEPTION {
+        public static final StringTag NAME = new StringTag(25, "exception.name");
+        public static final StringTag MESSAGE = new StringTag(26, "exception.message");
+        public static final StringTag STACK = new StringTag(27, "exception.stack");
     }
 
     public static final StringTag LOGIC_ENDPOINT = new StringTag(12, "x-le");

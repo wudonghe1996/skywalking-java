@@ -18,6 +18,7 @@
 
 package org.apache.skywalking.apm.agent;
 
+import java.io.File;
 import java.lang.instrument.Instrumentation;
 import java.security.ProtectionDomain;
 import java.util.Collections;
@@ -55,6 +56,7 @@ import org.apache.skywalking.apm.agent.core.plugin.PluginFinder;
 import org.apache.skywalking.apm.agent.core.plugin.bootstrap.BootstrapInstrumentBoost;
 import org.apache.skywalking.apm.agent.core.plugin.interceptor.enhance.DelegateNamingResolver;
 import org.apache.skywalking.apm.agent.core.plugin.jdk9module.JDK9ModuleExporter;
+import org.apache.skywalking.apm.agent.core.util.FileUtils;
 
 import static net.bytebuddy.matcher.ElementMatchers.nameContains;
 import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
@@ -137,6 +139,13 @@ public class SkyWalkingAgent {
         PluginFinder.pluginInitCompleted();
 
         LOGGER.info("Skywalking agent transformer has installed.");
+
+        // create arthas temp dir
+        try {
+            FileUtils.makeLocalDir(new File(Config.Arthas.TEMP_FILE_PATH));
+        } catch (Exception e) {
+            LOGGER.error(e, "ServiceManagementClient mkdir arthas dir fail.");
+        }
 
         try {
             ServiceManager.INSTANCE.boot();

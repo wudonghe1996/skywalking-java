@@ -24,6 +24,7 @@ import org.apache.skywalking.apm.util.StringUtil;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 
 import javax.servlet.http.HttpServletRequest;
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Enumeration;
@@ -135,5 +136,51 @@ public class RequestUtil {
             return Collections.enumeration(Collections.emptyList());
         }
         return Collections.enumeration(values);
+    }
+
+    public static void collectHttpBody(Object[] params, AbstractSpan span) {
+        try {
+            if (params == null || params.length == 0) {
+                return;
+            }
+            Map<String, Object> map = new HashMap<>();
+            for (Object param : params) {
+                pushPostParamToResult(param, map);
+            }
+            String tagValue = map.toString();
+            tagValue = SpringMVCPluginConfig.Plugin.Http.HTTP_PARAMS_LENGTH_THRESHOLD > 0 ?
+                    StringUtil.cut(tagValue, SpringMVCPluginConfig.Plugin.Http.HTTP_PARAMS_LENGTH_THRESHOLD) : tagValue;
+            Tags.HTTP.BODY.set(span, tagValue);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static void collectHttpResponse(Object response, AbstractSpan span) {
+        try {
+            if (response == null) {
+                return;
+            }
+            Map<String, Object> map = new HashMap<>();
+            pushPostParamToResult(response, map);
+
+            String tagValue = map.toString();
+            tagValue = SpringMVCPluginConfig.Plugin.Http.HTTP_PARAMS_LENGTH_THRESHOLD > 0 ?
+                    StringUtil.cut(tagValue, SpringMVCPluginConfig.Plugin.Http.HTTP_PARAMS_LENGTH_THRESHOLD) : tagValue;
+            Tags.HTTP.RESPONSE.set(span, tagValue);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private static void pushPostParamToResult(Object obj, Map<String, Object> result) throws IllegalAccessException {
+        Field[] declaredFields = obj.getClass().getDeclaredFields();
+        for (Field field : declaredFields) {
+            field.setAccessible(true);
+            Object value = field.get(obj);
+            if (value != null) {
+                result.put(field.getName(), value);
+            }
+        }
     }
 }

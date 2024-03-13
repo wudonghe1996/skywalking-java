@@ -394,4 +394,15 @@ public class Config {
          */
         public static String AUTO_TAG_KEYS = "";
     }
+
+    public static class Arthas {
+        public static String ARTHAS_HOME;
+        public static String DISABLED_COMMANDS;
+
+        public static String TEMP_FILE_PATH;
+
+        public static String HTTP_IP;
+
+        public static String HTTP_PORT;
+    }
 }

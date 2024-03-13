@@ -54,4 +54,13 @@ public class FileUtils {
             }
         });
     }
+
+    public static void makeLocalDir(File file) {
+        if (file.getParentFile().exists()) {
+            file.mkdir();
+        } else {
+            makeLocalDir(file.getParentFile());
+            file.mkdir();
+        }
+    }
 }

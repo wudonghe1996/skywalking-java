@@ -37,6 +37,8 @@ import org.apache.skywalking.apm.agent.core.os.OSUtil;
 import org.apache.skywalking.apm.agent.core.util.InstanceJsonPropertiesUtil;
 import org.apache.skywalking.apm.network.common.v3.Commands;
 import org.apache.skywalking.apm.network.common.v3.KeyStringValuePair;
+import org.apache.skywalking.apm.network.dayu.v3.DayuMessage;
+import org.apache.skywalking.apm.network.dayu.v3.DayuServiceGrpc;
 import org.apache.skywalking.apm.network.management.v3.InstancePingPkg;
 import org.apache.skywalking.apm.network.management.v3.InstanceProperties;
 import org.apache.skywalking.apm.network.management.v3.ManagementServiceGrpc;
@@ -51,6 +53,7 @@ public class ServiceManagementClient implements BootService, Runnable, GRPCChann
 
     private volatile GRPCChannelStatus status = GRPCChannelStatus.DISCONNECT;
     private volatile ManagementServiceGrpc.ManagementServiceBlockingStub managementServiceBlockingStub;
+    private volatile DayuServiceGrpc.DayuServiceBlockingStub dayuServiceBlockingStub;
     private volatile ScheduledFuture<?> heartbeatFuture;
     private volatile AtomicInteger sendPropertiesCounter = new AtomicInteger(0);
 
@@ -59,8 +62,10 @@ public class ServiceManagementClient implements BootService, Runnable, GRPCChann
         if (GRPCChannelStatus.CONNECTED.equals(status)) {
             Channel channel = ServiceManager.INSTANCE.findService(GRPCChannelManager.class).getChannel();
             managementServiceBlockingStub = ManagementServiceGrpc.newBlockingStub(channel);
+            dayuServiceBlockingStub = DayuServiceGrpc.newBlockingStub(channel);
         } else {
             managementServiceBlockingStub = null;
+            dayuServiceBlockingStub = null;
         }
         this.status = status;
     }
@@ -91,6 +96,24 @@ public class ServiceManagementClient implements BootService, Runnable, GRPCChann
 
     @Override
     public void shutdown() {
+        // send offline message to oap
+        if (GRPCChannelStatus.CONNECTED.equals(status)) {
+            try {
+                if (dayuServiceBlockingStub != null) {
+                    final Commands commands = dayuServiceBlockingStub.withDeadlineAfter(
+                            GRPC_UPSTREAM_TIMEOUT, TimeUnit.SECONDS
+                    ).offline(DayuMessage.newBuilder()
+                            .setServiceName(Config.Agent.SERVICE_NAME)
+                            .setInstanceName(Config.Agent.INSTANCE_NAME)
+                            .build());
+                    ServiceManager.INSTANCE.findService(CommandService.class).receiveCommand(commands);
+                }
+            } catch (Throwable t) {
+                LOGGER.error(t, "ServiceManagementClient shutdown execute fail.");
+                ServiceManager.INSTANCE.findService(GRPCChannelManager.class).reportError(t);
+            }
+        }
+
         heartbeatFuture.cancel(true);
     }
 
@@ -129,6 +152,22 @@ public class ServiceManagementClient implements BootService, Runnable, GRPCChann
             } catch (Throwable t) {
                 LOGGER.error(t, "ServiceManagementClient execute fail.");
                 ServiceManager.INSTANCE.findService(GRPCChannelManager.class).reportError(t);
+            }
+
+            // send online message to oap
+            try {
+                if (dayuServiceBlockingStub != null) {
+                    final Commands commands = dayuServiceBlockingStub.withDeadlineAfter(
+                            GRPC_UPSTREAM_TIMEOUT, TimeUnit.SECONDS
+                    ).online(DayuMessage.newBuilder()
+                            .setServiceName(Config.Agent.SERVICE_NAME)
+                            .setInstanceName(Config.Agent.INSTANCE_NAME)
+                            .build());
+                    ServiceManager.INSTANCE.findService(CommandService.class).receiveCommand(commands);
+                }
+            } catch (Exception e) {
+                LOGGER.error(e, "ServiceManagementClient dayu online fail.");
+                ServiceManager.INSTANCE.findService(GRPCChannelManager.class).reportError(e);
             }
         }
     }

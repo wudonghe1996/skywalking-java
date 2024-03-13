@@ -28,6 +28,7 @@ import java.util.ServiceLoader;
 import org.apache.skywalking.apm.agent.core.logging.api.ILog;
 import org.apache.skywalking.apm.agent.core.logging.api.LogManager;
 import org.apache.skywalking.apm.agent.core.plugin.loader.AgentClassLoader;
+import org.apache.skywalking.apm.agent.core.remote.ServiceManagementClient;
 
 /**
  * The <code>ServiceManager</code> bases on {@link ServiceLoader}, load all {@link BootService} implementations.
@@ -47,6 +48,11 @@ public enum ServiceManager {
     }
 
     public void shutdown() {
+        // stop serviceManagementClient first
+        ServiceManagementClient serviceManagementClient = (ServiceManagementClient) bootedServices.get(ServiceManagementClient.class);
+        serviceManagementClient.shutdown();
+        bootedServices.remove(ServiceManagementClient.class);
+
         bootedServices.values().stream().sorted(Comparator.comparingInt(BootService::priority).reversed()).forEach(service -> {
             try {
                 service.shutdown();

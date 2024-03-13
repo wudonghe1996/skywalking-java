@@ -26,15 +26,18 @@ import org.apache.skywalking.apm.agent.core.boot.DefaultImplementor;
 import org.apache.skywalking.apm.agent.core.boot.DefaultNamedThreadFactory;
 import org.apache.skywalking.apm.agent.core.boot.ServiceManager;
 import org.apache.skywalking.apm.agent.core.conf.Config;
+import org.apache.skywalking.apm.agent.core.dayu.DayuSender;
 import org.apache.skywalking.apm.agent.core.jvm.clazz.ClassProvider;
 import org.apache.skywalking.apm.agent.core.jvm.cpu.CPUProvider;
 import org.apache.skywalking.apm.agent.core.jvm.gc.GCProvider;
+import org.apache.skywalking.apm.agent.core.jvm.machine.MachineProvider;
 import org.apache.skywalking.apm.agent.core.jvm.memory.MemoryProvider;
 import org.apache.skywalking.apm.agent.core.jvm.memorypool.MemoryPoolProvider;
 import org.apache.skywalking.apm.agent.core.jvm.thread.ThreadProvider;
 import org.apache.skywalking.apm.agent.core.logging.api.ILog;
 import org.apache.skywalking.apm.agent.core.logging.api.LogManager;
 import org.apache.skywalking.apm.agent.core.remote.GRPCChannelManager;
+import org.apache.skywalking.apm.network.dayu.v3.MachineMetric;
 import org.apache.skywalking.apm.network.language.agent.v3.JVMMetric;
 import org.apache.skywalking.apm.util.RunnableWithExceptionProtection;
 
@@ -47,12 +50,15 @@ public class JVMService implements BootService, Runnable {
     private static final ILog LOGGER = LogManager.getLogger(JVMService.class);
     private volatile ScheduledFuture<?> collectMetricFuture;
     private volatile ScheduledFuture<?> sendMetricFuture;
+    private volatile ScheduledFuture<?> sendDayuFuture;
     private JVMMetricsSender sender;
+    private DayuSender dayuSender;
     private volatile double cpuUsagePercent;
 
     @Override
     public void prepare() throws Throwable {
         sender = ServiceManager.INSTANCE.findService(JVMMetricsSender.class);
+        dayuSender = ServiceManager.INSTANCE.findService(DayuSender.class);
     }
 
     @Override
@@ -60,25 +66,19 @@ public class JVMService implements BootService, Runnable {
         collectMetricFuture = Executors.newSingleThreadScheduledExecutor(
             new DefaultNamedThreadFactory("JVMService-produce"))
                                        .scheduleAtFixedRate(new RunnableWithExceptionProtection(
-                                           this,
-                                           new RunnableWithExceptionProtection.CallbackWhenException() {
-                                               @Override
-                                               public void handle(Throwable t) {
-                                                   LOGGER.error("JVMService produces metrics failure.", t);
-                                               }
-                                           }
+                                           this, t -> LOGGER.error("JVMService produces metrics failure.", t)
                                        ), 0, Config.Jvm.METRICS_COLLECT_PERIOD, TimeUnit.SECONDS);
         sendMetricFuture = Executors.newSingleThreadScheduledExecutor(
             new DefaultNamedThreadFactory("JVMService-consume"))
                                     .scheduleAtFixedRate(new RunnableWithExceptionProtection(
-                                        sender,
-                                        new RunnableWithExceptionProtection.CallbackWhenException() {
-                                            @Override
-                                            public void handle(Throwable t) {
-                                                LOGGER.error("JVMService consumes and upload failure.", t);
-                                            }
-                                        }
+                                        sender, t -> LOGGER.error("JVMService consumes and upload failure.", t)
                                     ), 0, 1, TimeUnit.SECONDS);
+        sendDayuFuture = Executors.newSingleThreadScheduledExecutor(
+                        new DefaultNamedThreadFactory("DayuService"))
+                .scheduleAtFixedRate(new RunnableWithExceptionProtection(
+                        dayuSender, t -> LOGGER.error("DayuSender send machine fail.", t)
+                ), 0, 1, TimeUnit.SECONDS);
+
     }
 
     @Override
@@ -90,6 +90,7 @@ public class JVMService implements BootService, Runnable {
     public void shutdown() throws Throwable {
         collectMetricFuture.cancel(true);
         sendMetricFuture.cancel(true);
+        sendDayuFuture.cancel(true);
     }
 
     @Override
@@ -104,12 +105,16 @@ public class JVMService implements BootService, Runnable {
             jvmBuilder.addAllGc(GCProvider.INSTANCE.getGCList());
             jvmBuilder.setThread(ThreadProvider.INSTANCE.getThreadMetrics());
             jvmBuilder.setClazz(ClassProvider.INSTANCE.getClassMetrics());
-
             JVMMetric jvmMetric = jvmBuilder.build();
             sender.offer(jvmMetric);
-
             // refresh cpu usage percent
             cpuUsagePercent = jvmMetric.getCpu().getUsagePercent();
+
+            MachineMetric machineMetrics = MachineProvider.INSTANCE.getMachineMetrics();
+            MachineMetric.Builder machineBuilder = machineMetrics.toBuilder();
+            machineBuilder.setProcessCpuUsed(jvmBuilder.getCpu().getUsagePercent());
+            machineBuilder.setTime(currentTimeMillis);
+            dayuSender.offer(machineBuilder.build());
         } catch (Exception e) {
             LOGGER.error(e, "Collect JVM info fail.");
         }

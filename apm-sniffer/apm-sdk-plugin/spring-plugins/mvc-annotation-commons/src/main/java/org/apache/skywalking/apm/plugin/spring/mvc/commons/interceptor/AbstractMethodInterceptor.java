@@ -25,6 +25,7 @@ import org.apache.skywalking.apm.agent.core.context.RuntimeContext;
 import org.apache.skywalking.apm.agent.core.context.tag.Tags;
 import org.apache.skywalking.apm.agent.core.context.trace.AbstractSpan;
 import org.apache.skywalking.apm.agent.core.context.trace.SpanLayer;
+import org.apache.skywalking.apm.agent.core.context.util.ThrowableTransformer;
 import org.apache.skywalking.apm.agent.core.logging.api.ILog;
 import org.apache.skywalking.apm.agent.core.logging.api.LogManager;
 import org.apache.skywalking.apm.agent.core.plugin.interceptor.enhance.EnhancedInstance;
@@ -61,6 +62,8 @@ public abstract class AbstractMethodInterceptor implements InstanceMethodsAround
     private static final String SERVLET_RESPONSE_CLASS = "javax.servlet.http.HttpServletResponse";
     private static final String JAKARTA_SERVLET_RESPONSE_CLASS = "jakarta.servlet.http.HttpServletResponse";
     private static final String GET_STATUS_METHOD = "getStatus";
+
+    private static final String GET = "GET";
 
     private static boolean IN_SERVLET_CONTAINER;
     private static boolean IS_JAVAX = false;
@@ -128,7 +131,11 @@ public abstract class AbstractMethodInterceptor implements InstanceMethodsAround
                     SpanLayer.asHttp(span);
 
                     if (SpringMVCPluginConfig.Plugin.SpringMVC.COLLECT_HTTP_PARAMS) {
-                        RequestUtil.collectHttpParam(httpServletRequest, span);
+                        if (httpServletRequest.getMethod().equals(GET)) {
+                            RequestUtil.collectHttpParam(httpServletRequest, span);
+                        } else {
+                            RequestUtil.collectHttpBody(allArguments, span);
+                        }
                     }
 
                     if (!CollectionUtil.isEmpty(SpringMVCPluginConfig.Plugin.Http.INCLUDE_HTTP_HEADERS)) {
@@ -153,7 +160,11 @@ public abstract class AbstractMethodInterceptor implements InstanceMethodsAround
                     SpanLayer.asHttp(span);
 
                     if (SpringMVCPluginConfig.Plugin.SpringMVC.COLLECT_HTTP_PARAMS) {
-                        RequestUtil.collectHttpParam(httpServletRequest, span);
+                        if (httpServletRequest.getMethod().equals(GET)) {
+                            RequestUtil.collectHttpParam(httpServletRequest, span);
+                        } else {
+                            RequestUtil.collectHttpBody(allArguments, span);
+                        }
                     }
 
                     if (!CollectionUtil
@@ -178,6 +189,12 @@ public abstract class AbstractMethodInterceptor implements InstanceMethodsAround
 
                     if (SpringMVCPluginConfig.Plugin.SpringMVC.COLLECT_HTTP_PARAMS) {
                         RequestUtil.collectHttpParam(serverHttpRequest, span);
+                        if (serverHttpRequest.getMethod().equals(GET)) {
+                            RequestUtil.collectHttpParam(serverHttpRequest, span);
+                        } else {
+                            RequestUtil.collectHttpBody(allArguments, span);
+                        }
+
                     }
 
                     if (!CollectionUtil.isEmpty(SpringMVCPluginConfig.Plugin.Http.INCLUDE_HTTP_HEADERS)) {
@@ -259,6 +276,10 @@ public abstract class AbstractMethodInterceptor implements InstanceMethodsAround
                     runtimeContext.remove(CONTROLLER_METHOD_STACK_DEPTH);
                 }
 
+                if (SpringMVCPluginConfig.Plugin.SpringMVC.COLLECT_HTTP_PARAMS) {
+                    RequestUtil.collectHttpResponse(ret, span);
+                }
+
                 // Active HTTP parameter collection automatically in the profiling context.
                 if (!SpringMVCPluginConfig.Plugin.SpringMVC.COLLECT_HTTP_PARAMS && span.isProfiling()) {
                     if (IS_JAVAX && HttpServletRequest.class.isAssignableFrom(request.getClass())) {
@@ -280,6 +301,10 @@ public abstract class AbstractMethodInterceptor implements InstanceMethodsAround
     @Override
     public void handleMethodException(EnhancedInstance objInst, Method method, Object[] allArguments,
                                       Class<?>[] argumentsTypes, Throwable t) {
+        AbstractSpan span = ContextManager.activeSpan();
+        Tags.EXCEPTION.NAME.set(span, t.getClass().getName());
+        Tags.EXCEPTION.MESSAGE.set(span, t.getMessage());
+        Tags.EXCEPTION.STACK.set(span, ThrowableTransformer.INSTANCE.convert2String(t, 4000));
         ContextManager.activeSpan().log(t);
     }
 
