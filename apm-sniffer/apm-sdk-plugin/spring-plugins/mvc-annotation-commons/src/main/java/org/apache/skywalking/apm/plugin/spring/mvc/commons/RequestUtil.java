@@ -144,9 +144,9 @@ public class RequestUtil {
                 return;
             }
             Map<String, Object> map = new HashMap<>();
-            for (Object param : params) {
-                pushPostParamToResult(param, map);
-            }
+//            for (Object param : params) {
+//                pushPostParamToResult(param, map);
+//            }
             String tagValue = map.toString();
             tagValue = SpringMVCPluginConfig.Plugin.Http.HTTP_PARAMS_LENGTH_THRESHOLD > 0 ?
                     StringUtil.cut(tagValue, SpringMVCPluginConfig.Plugin.Http.HTTP_PARAMS_LENGTH_THRESHOLD) : tagValue;
@@ -162,7 +162,7 @@ public class RequestUtil {
                 return;
             }
             Map<String, Object> map = new HashMap<>();
-            pushPostParamToResult(response, map);
+//            pushPostParamToResult(response, map);
 
             String tagValue = map.toString();
             tagValue = SpringMVCPluginConfig.Plugin.Http.HTTP_PARAMS_LENGTH_THRESHOLD > 0 ?

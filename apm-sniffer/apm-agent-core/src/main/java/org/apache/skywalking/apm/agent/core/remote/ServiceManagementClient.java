@@ -19,6 +19,8 @@
 package org.apache.skywalking.apm.agent.core.remote;
 
 import io.grpc.Channel;
+
+import java.lang.management.ManagementFactory;
 import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledFuture;
@@ -57,6 +59,8 @@ public class ServiceManagementClient implements BootService, Runnable, GRPCChann
     private volatile ScheduledFuture<?> heartbeatFuture;
     private volatile AtomicInteger sendPropertiesCounter = new AtomicInteger(0);
 
+    private static Long SERVICE_START_TIME;
+
     @Override
     public void statusChanged(GRPCChannelStatus status) {
         if (GRPCChannelStatus.CONNECTED.equals(status)) {
@@ -75,6 +79,7 @@ public class ServiceManagementClient implements BootService, Runnable, GRPCChann
         ServiceManager.INSTANCE.findService(GRPCChannelManager.class).addChannelListener(this);
 
         SERVICE_INSTANCE_PROPERTIES = InstanceJsonPropertiesUtil.parseProperties();
+        SERVICE_START_TIME = ManagementFactory.getRuntimeMXBean().getStartTime();
     }
 
     @Override
@@ -162,6 +167,7 @@ public class ServiceManagementClient implements BootService, Runnable, GRPCChann
                     ).online(DayuMessage.newBuilder()
                             .setServiceName(Config.Agent.SERVICE_NAME)
                             .setInstanceName(Config.Agent.INSTANCE_NAME)
+                            .setServiceStartTime(SERVICE_START_TIME)
                             .build());
                     ServiceManager.INSTANCE.findService(CommandService.class).receiveCommand(commands);
                 }
