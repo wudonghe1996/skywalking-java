@@ -174,6 +174,11 @@ public class Config {
          * Enable the agent kernel services and instrumentation.
          */
         public static boolean ENABLE = true;
+
+        /**
+         * code need enhance
+         */
+        public static boolean NEED_ENHANCE = true;
     }
 
     public static class OsInfo {

@@ -91,54 +91,56 @@ public class SkyWalkingAgent {
             return;
         }
 
-        try {
-            pluginFinder = new PluginFinder(new PluginBootstrap().loadPlugins());
-        } catch (AgentPackageNotFoundException ape) {
-            LOGGER.error(ape, "Locate agent.jar failure. Shutting down.");
-            return;
-        } catch (Exception e) {
-            LOGGER.error(e, "SkyWalking agent initialized failure. Shutting down.");
-            return;
-        }
+        if (Config.Agent.NEED_ENHANCE) {
+            try {
+                pluginFinder = new PluginFinder(new PluginBootstrap().loadPlugins());
+            } catch (AgentPackageNotFoundException ape) {
+                LOGGER.error(ape, "Locate agent.jar failure. Shutting down.");
+                return;
+            } catch (Exception e) {
+                LOGGER.error(e, "SkyWalking agent initialized failure. Shutting down.");
+                return;
+            }
 
-        LOGGER.info("Skywalking agent begin to install transformer ...");
+            LOGGER.info("Skywalking agent begin to install transformer ...");
 
-        AgentBuilder agentBuilder = newAgentBuilder().ignore(
-            nameStartsWith("net.bytebuddy.")
-                .or(nameStartsWith("org.slf4j."))
-                .or(nameStartsWith("org.groovy."))
-                .or(nameContains("javassist"))
-                .or(nameContains(".asm."))
-                .or(nameContains(".reflectasm."))
-                .or(nameStartsWith("sun.reflect"))
-                .or(allSkyWalkingAgentExcludeToolkit())
-                .or(ElementMatchers.isSynthetic()));
+            AgentBuilder agentBuilder = newAgentBuilder().ignore(
+                    nameStartsWith("net.bytebuddy.")
+                            .or(nameStartsWith("org.slf4j."))
+                            .or(nameStartsWith("org.groovy."))
+                            .or(nameContains("javassist"))
+                            .or(nameContains(".asm."))
+                            .or(nameContains(".reflectasm."))
+                            .or(nameStartsWith("sun.reflect"))
+                            .or(allSkyWalkingAgentExcludeToolkit())
+                            .or(ElementMatchers.isSynthetic()));
 
-        JDK9ModuleExporter.EdgeClasses edgeClasses = new JDK9ModuleExporter.EdgeClasses();
-        try {
-            agentBuilder = BootstrapInstrumentBoost.inject(pluginFinder, instrumentation, agentBuilder, edgeClasses);
-        } catch (Exception e) {
-            LOGGER.error(e, "SkyWalking agent inject bootstrap instrumentation failure. Shutting down.");
-            return;
-        }
+            JDK9ModuleExporter.EdgeClasses edgeClasses = new JDK9ModuleExporter.EdgeClasses();
+            try {
+                agentBuilder = BootstrapInstrumentBoost.inject(pluginFinder, instrumentation, agentBuilder, edgeClasses);
+            } catch (Exception e) {
+                LOGGER.error(e, "SkyWalking agent inject bootstrap instrumentation failure. Shutting down.");
+                return;
+            }
 
-        try {
-            agentBuilder = JDK9ModuleExporter.openReadEdge(instrumentation, agentBuilder, edgeClasses);
-        } catch (Exception e) {
-            LOGGER.error(e, "SkyWalking agent open read edge in JDK 9+ failure. Shutting down.");
-            return;
-        }
+            try {
+                agentBuilder = JDK9ModuleExporter.openReadEdge(instrumentation, agentBuilder, edgeClasses);
+            } catch (Exception e) {
+                LOGGER.error(e, "SkyWalking agent open read edge in JDK 9+ failure. Shutting down.");
+                return;
+            }
 
-        agentBuilder.type(pluginFinder.buildMatch())
+            agentBuilder.type(pluginFinder.buildMatch())
                     .transform(new Transformer(pluginFinder))
                     .with(AgentBuilder.RedefinitionStrategy.RETRANSFORMATION)
                     .with(new RedefinitionListener())
                     .with(new Listener())
                     .installOn(instrumentation);
 
-        PluginFinder.pluginInitCompleted();
+            PluginFinder.pluginInitCompleted();
 
-        LOGGER.info("Skywalking agent transformer has installed.");
+            LOGGER.info("Skywalking agent transformer has installed.");
+        }
 
         // create arthas temp dir
         try {
@@ -154,7 +156,7 @@ public class SkyWalkingAgent {
         }
 
         Runtime.getRuntime()
-               .addShutdownHook(new Thread(ServiceManager.INSTANCE::shutdown, "skywalking service shutdown thread"));
+                .addShutdownHook(new Thread(ServiceManager.INSTANCE::shutdown, "skywalking service shutdown thread"));
     }
 
     /**
@@ -191,7 +193,7 @@ public class SkyWalkingAgent {
                 EnhanceContext context = new EnhanceContext();
                 for (AbstractClassEnhancePluginDefine define : pluginDefines) {
                     DynamicType.Builder<?> possibleNewBuilder = define.define(
-                        typeDescription, newBuilder, classLoader, context);
+                            typeDescription, newBuilder, classLoader, context);
                     if (possibleNewBuilder != null) {
                         newBuilder = possibleNewBuilder;
                     }
