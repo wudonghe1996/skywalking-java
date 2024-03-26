@@ -33,12 +33,14 @@ import net.bytebuddy.agent.builder.SWNativeMethodStrategy;
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.dynamic.DynamicType;
+import net.bytebuddy.dynamic.scaffold.MethodGraph;
 import net.bytebuddy.dynamic.scaffold.TypeValidation;
 import org.apache.skywalking.apm.agent.bytebuddy.SWAuxiliaryTypeNamingStrategy;
 import net.bytebuddy.implementation.SWImplementationContextFactory;
 import net.bytebuddy.matcher.ElementMatcher;
 import net.bytebuddy.matcher.ElementMatchers;
 import net.bytebuddy.utility.JavaModule;
+import org.apache.skywalking.apm.agent.bytebuddy.SWMethodGraphCompilerDelegate;
 import org.apache.skywalking.apm.agent.bytebuddy.SWMethodNameTransformer;
 import org.apache.skywalking.apm.agent.core.boot.AgentPackageNotFoundException;
 import org.apache.skywalking.apm.agent.core.boot.ServiceManager;
@@ -103,6 +105,24 @@ public class SkyWalkingAgent {
             }
 
             LOGGER.info("Skywalking agent begin to install transformer ...");
+        try {
+            installClassTransformer(instrumentation, pluginFinder);
+        } catch (Exception e) {
+            LOGGER.error(e, "Skywalking agent installed class transformer failure.");
+        }
+
+        try {
+            ServiceManager.INSTANCE.boot();
+        } catch (Exception e) {
+            LOGGER.error(e, "Skywalking agent boot failure.");
+        }
+
+        Runtime.getRuntime()
+               .addShutdownHook(new Thread(ServiceManager.INSTANCE::shutdown, "skywalking service shutdown thread"));
+    }
+
+    static void installClassTransformer(Instrumentation instrumentation, PluginFinder pluginFinder) throws Exception {
+        LOGGER.info("Skywalking agent begin to install transformer ...");
 
             AgentBuilder agentBuilder = newAgentBuilder().ignore(
                     nameStartsWith("net.bytebuddy.")
@@ -115,20 +135,18 @@ public class SkyWalkingAgent {
                             .or(allSkyWalkingAgentExcludeToolkit())
                             .or(ElementMatchers.isSynthetic()));
 
-            JDK9ModuleExporter.EdgeClasses edgeClasses = new JDK9ModuleExporter.EdgeClasses();
-            try {
-                agentBuilder = BootstrapInstrumentBoost.inject(pluginFinder, instrumentation, agentBuilder, edgeClasses);
-            } catch (Exception e) {
-                LOGGER.error(e, "SkyWalking agent inject bootstrap instrumentation failure. Shutting down.");
-                return;
-            }
+        JDK9ModuleExporter.EdgeClasses edgeClasses = new JDK9ModuleExporter.EdgeClasses();
+        try {
+            agentBuilder = BootstrapInstrumentBoost.inject(pluginFinder, instrumentation, agentBuilder, edgeClasses);
+        } catch (Exception e) {
+            throw new Exception("SkyWalking agent inject bootstrap instrumentation failure. Shutting down.", e);
+        }
 
-            try {
-                agentBuilder = JDK9ModuleExporter.openReadEdge(instrumentation, agentBuilder, edgeClasses);
-            } catch (Exception e) {
-                LOGGER.error(e, "SkyWalking agent open read edge in JDK 9+ failure. Shutting down.");
-                return;
-            }
+        try {
+            agentBuilder = JDK9ModuleExporter.openReadEdge(instrumentation, agentBuilder, edgeClasses);
+        } catch (Exception e) {
+            throw new Exception("SkyWalking agent open read edge in JDK 9+ failure. Shutting down.", e);
+        }
 
             agentBuilder.type(pluginFinder.buildMatch())
                     .transform(new Transformer(pluginFinder))
@@ -157,6 +175,7 @@ public class SkyWalkingAgent {
 
         Runtime.getRuntime()
                 .addShutdownHook(new Thread(ServiceManager.INSTANCE::shutdown, "skywalking service shutdown thread"));
+        LOGGER.info("Skywalking agent transformer has installed.");
     }
 
     /**
@@ -167,7 +186,8 @@ public class SkyWalkingAgent {
         final ByteBuddy byteBuddy = new ByteBuddy()
                 .with(TypeValidation.of(Config.Agent.IS_OPEN_DEBUGGING_CLASS))
                 .with(new SWAuxiliaryTypeNamingStrategy(NAME_TRAIT))
-                .with(new SWImplementationContextFactory(NAME_TRAIT));
+                .with(new SWImplementationContextFactory(NAME_TRAIT))
+                .with(new SWMethodGraphCompilerDelegate(MethodGraph.Compiler.DEFAULT));
 
         return new SWAgentBuilderDefault(byteBuddy, new SWNativeMethodStrategy(NAME_TRAIT))
                 .with(new SWDescriptionStrategy(NAME_TRAIT));

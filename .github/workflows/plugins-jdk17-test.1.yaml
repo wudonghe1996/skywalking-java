@@ -57,6 +57,9 @@ jobs:
         case:
           - spring-6.x-scenario
           - resteasy-6.x-scenario
+          - gateway-4.x-scenario
+          - httpexchange-scenario
+          - activemq-artemis-2.x-scenario
     steps:
       - uses: actions/checkout@v2
         with:
