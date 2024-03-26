@@ -105,59 +105,11 @@ public class SkyWalkingAgent {
             }
 
             LOGGER.info("Skywalking agent begin to install transformer ...");
-        try {
-            installClassTransformer(instrumentation, pluginFinder);
-        } catch (Exception e) {
-            LOGGER.error(e, "Skywalking agent installed class transformer failure.");
-        }
-
-        try {
-            ServiceManager.INSTANCE.boot();
-        } catch (Exception e) {
-            LOGGER.error(e, "Skywalking agent boot failure.");
-        }
-
-        Runtime.getRuntime()
-               .addShutdownHook(new Thread(ServiceManager.INSTANCE::shutdown, "skywalking service shutdown thread"));
-    }
-
-    static void installClassTransformer(Instrumentation instrumentation, PluginFinder pluginFinder) throws Exception {
-        LOGGER.info("Skywalking agent begin to install transformer ...");
-
-            AgentBuilder agentBuilder = newAgentBuilder().ignore(
-                    nameStartsWith("net.bytebuddy.")
-                            .or(nameStartsWith("org.slf4j."))
-                            .or(nameStartsWith("org.groovy."))
-                            .or(nameContains("javassist"))
-                            .or(nameContains(".asm."))
-                            .or(nameContains(".reflectasm."))
-                            .or(nameStartsWith("sun.reflect"))
-                            .or(allSkyWalkingAgentExcludeToolkit())
-                            .or(ElementMatchers.isSynthetic()));
-
-        JDK9ModuleExporter.EdgeClasses edgeClasses = new JDK9ModuleExporter.EdgeClasses();
-        try {
-            agentBuilder = BootstrapInstrumentBoost.inject(pluginFinder, instrumentation, agentBuilder, edgeClasses);
-        } catch (Exception e) {
-            throw new Exception("SkyWalking agent inject bootstrap instrumentation failure. Shutting down.", e);
-        }
-
-        try {
-            agentBuilder = JDK9ModuleExporter.openReadEdge(instrumentation, agentBuilder, edgeClasses);
-        } catch (Exception e) {
-            throw new Exception("SkyWalking agent open read edge in JDK 9+ failure. Shutting down.", e);
-        }
-
-            agentBuilder.type(pluginFinder.buildMatch())
-                    .transform(new Transformer(pluginFinder))
-                    .with(AgentBuilder.RedefinitionStrategy.RETRANSFORMATION)
-                    .with(new RedefinitionListener())
-                    .with(new Listener())
-                    .installOn(instrumentation);
-
-            PluginFinder.pluginInitCompleted();
-
-            LOGGER.info("Skywalking agent transformer has installed.");
+            try {
+                installClassTransformer(instrumentation, pluginFinder);
+            } catch (Exception e) {
+                LOGGER.error(e, "Skywalking agent installed class transformer failure.");
+            }
         }
 
         // create arthas temp dir
@@ -175,6 +127,44 @@ public class SkyWalkingAgent {
 
         Runtime.getRuntime()
                 .addShutdownHook(new Thread(ServiceManager.INSTANCE::shutdown, "skywalking service shutdown thread"));
+    }
+
+    static void installClassTransformer(Instrumentation instrumentation, PluginFinder pluginFinder) throws Exception {
+        LOGGER.info("Skywalking agent begin to install transformer ...");
+
+        AgentBuilder agentBuilder = newAgentBuilder().ignore(
+                nameStartsWith("net.bytebuddy.")
+                        .or(nameStartsWith("org.slf4j."))
+                        .or(nameStartsWith("org.groovy."))
+                        .or(nameContains("javassist"))
+                        .or(nameContains(".asm."))
+                        .or(nameContains(".reflectasm."))
+                        .or(nameStartsWith("sun.reflect"))
+                        .or(allSkyWalkingAgentExcludeToolkit())
+                        .or(ElementMatchers.isSynthetic()));
+
+        JDK9ModuleExporter.EdgeClasses edgeClasses = new JDK9ModuleExporter.EdgeClasses();
+        try {
+            agentBuilder = BootstrapInstrumentBoost.inject(pluginFinder, instrumentation, agentBuilder, edgeClasses);
+        } catch (Exception e) {
+            throw new Exception("SkyWalking agent inject bootstrap instrumentation failure. Shutting down.", e);
+        }
+
+        try {
+            agentBuilder = JDK9ModuleExporter.openReadEdge(instrumentation, agentBuilder, edgeClasses);
+        } catch (Exception e) {
+            throw new Exception("SkyWalking agent open read edge in JDK 9+ failure. Shutting down.", e);
+        }
+
+        agentBuilder.type(pluginFinder.buildMatch())
+                .transform(new Transformer(pluginFinder))
+                .with(AgentBuilder.RedefinitionStrategy.RETRANSFORMATION)
+                .with(new RedefinitionListener())
+                .with(new Listener())
+                .installOn(instrumentation);
+
+        PluginFinder.pluginInitCompleted();
+
         LOGGER.info("Skywalking agent transformer has installed.");
     }
 
