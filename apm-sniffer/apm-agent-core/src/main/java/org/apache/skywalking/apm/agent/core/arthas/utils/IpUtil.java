@@ -16,13 +16,13 @@
  *
  */
 
-package org.apache.skywalking.apm.agent.core.arthas;
+package org.apache.skywalking.apm.agent.core.arthas.utils;
 
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.util.Enumeration;
 
-public class IpUtils {
+public class IpUtil {
 
     public static InetAddress getLocalHostExactAddress() {
         try {

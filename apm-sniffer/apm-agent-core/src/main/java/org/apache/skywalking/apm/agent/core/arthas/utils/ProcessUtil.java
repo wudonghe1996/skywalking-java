@@ -16,7 +16,7 @@
  *
  */
 
-package org.apache.skywalking.apm.agent.core.arthas;
+package org.apache.skywalking.apm.agent.core.arthas.utils;
 
 import com.taobao.arthas.common.AnsiLog;
 import com.taobao.arthas.common.IOUtils;
@@ -30,11 +30,11 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
-public class ProcessUtils {
+public class ProcessUtil {
 
     private static String FOUND_JAVA_HOME = null;
 
-    public static void runJarWithArgs(List<String> attachArgs) {
+    public static Boolean runJarWithArgs(List<String> attachArgs) {
         // find java/java.exe, then try to find tools.jar
         String javaHome = findJavaHome();
 
@@ -92,15 +92,9 @@ public class ProcessUtils {
             redirectStdout.join();
             redirectStderr.join();
 
-            try {
-                int exitValue = proc.exitValue();
-                if (exitValue != 0) {
-                    System.exit(1);
-                }
-            } catch (Exception e) {
-                System.err.println("arthas start : get linux exitValue error: " + e.getMessage());
-                e.printStackTrace();
-            }
+            int exitValue = proc.exitValue();
+
+            return exitValue == 0;
         } catch (Throwable e) {
             e.printStackTrace();
             throw new RuntimeException("arthas start error: " + e.getMessage());

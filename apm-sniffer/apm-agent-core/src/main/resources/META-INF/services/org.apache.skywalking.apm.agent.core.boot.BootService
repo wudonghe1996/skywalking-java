@@ -43,3 +43,7 @@ org.apache.skywalking.apm.agent.core.arthas.ArthasService
 org.apache.skywalking.apm.agent.core.arthas.profile.FlameDiagramHandler
 # Dayu数据上报
 org.apache.skywalking.apm.agent.core.dayu.DayuSender
+# Arthas数据上报
+org.apache.skywalking.apm.agent.core.arthas.ArthasSender
+org.apache.skywalking.apm.agent.core.arthas.handler.ProfileSaveManager
+

@@ -16,7 +16,7 @@
  *
  */
 
-package org.apache.skywalking.apm.agent.core.arthas;
+package org.apache.skywalking.apm.agent.core.arthas.utils;
 
 import org.apache.skywalking.apm.agent.core.boot.AgentPackageNotFoundException;
 import org.apache.skywalking.apm.agent.core.boot.AgentPackagePath;
@@ -29,11 +29,11 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ArthasUtils {
+public class ArthasUtil {
 
-    private static final ILog LOGGER = LogManager.getLogger(ArthasUtils.class);
+    private static final ILog LOGGER = LogManager.getLogger(ArthasUtil.class);
 
-    public static void startArthas(long pid, int telnetPort, String ip, Integer httpPort)
+    public static Boolean startArthas(long pid, int telnetPort, String ip, Integer httpPort)
             throws SecurityException, IllegalArgumentException, AgentPackageNotFoundException {
         // find arthas home
         File arthasHomeDir = getArthasHome();
@@ -70,12 +70,13 @@ public class ArthasUtils {
 
         LOGGER.info("Try to attach process " + pid);
         LOGGER.debug("Start arthas-core.jar args: " + attachArgs);
-        ProcessUtils.runJarWithArgs(attachArgs);
-
+        boolean flag = ProcessUtil.runJarWithArgs(attachArgs);
         LOGGER.info("Attach process {} success.", pid);
+
+        return flag;
     }
 
-    public static void stopArthas(String ip, int telnetPort) throws Exception {
+    public static Boolean stopArthas(String ip, int telnetPort) throws Exception {
         // find arthas home
         File arthasHomeDir = getArthasHome();
         LOGGER.info("arthas home: " + arthasHomeDir);
@@ -94,9 +95,11 @@ public class ArthasUtils {
         telnetArgs.add("" + telnetPort);
 
         LOGGER.debug("Start arthas-client.jar args: " + telnetArgs);
-        ProcessUtils.runJarWithArgs(telnetArgs);
+        Boolean flag = ProcessUtil.runJarWithArgs(telnetArgs);
 
         LOGGER.info("Stop arthas process success.");
+
+        return flag;
     }
 
     private static File getArthasHome() throws AgentPackageNotFoundException {
@@ -122,8 +125,7 @@ public class ArthasUtils {
 
             for (String fileName : fileList) {
                 if (!new File(home, fileName).exists()) {
-                    throw new IllegalArgumentException(
-                            fileName + " do not exist, arthas home: " + home.getAbsolutePath());
+                    throw new IllegalArgumentException(fileName + " do not exist, arthas home: " + home.getAbsolutePath());
                 }
             }
             return;

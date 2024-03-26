@@ -21,6 +21,10 @@ package org.apache.skywalking.apm.agent.core.arthas;
 import com.taobao.arthas.common.PidUtils;
 import com.taobao.arthas.common.SocketUtils;
 import io.grpc.Channel;
+import org.apache.skywalking.apm.agent.core.arthas.handler.ProfileBaseHandle;
+import org.apache.skywalking.apm.agent.core.arthas.utils.ArthasUtil;
+import org.apache.skywalking.apm.agent.core.arthas.utils.HttpUtil;
+import org.apache.skywalking.apm.agent.core.arthas.utils.IpUtil;
 import org.apache.skywalking.apm.agent.core.boot.BootService;
 import org.apache.skywalking.apm.agent.core.boot.DefaultImplementor;
 import org.apache.skywalking.apm.agent.core.boot.DefaultNamedThreadFactory;
@@ -32,8 +36,8 @@ import org.apache.skywalking.apm.agent.core.remote.GRPCChannelListener;
 import org.apache.skywalking.apm.agent.core.remote.GRPCChannelManager;
 import org.apache.skywalking.apm.agent.core.remote.GRPCChannelStatus;
 import org.apache.skywalking.apm.network.arthas.v3.ArthasCommandServiceGrpc;
-import org.apache.skywalking.apm.network.arthas.v3.CommandRequest;
-import org.apache.skywalking.apm.network.arthas.v3.CommandResponse;
+import org.apache.skywalking.apm.network.arthas.v3.ArthasRequest;
+import org.apache.skywalking.apm.network.arthas.v3.ArthasResponse;
 import org.apache.skywalking.apm.network.dayu.v3.ArthasIpMessage;
 import org.apache.skywalking.apm.network.dayu.v3.DayuServiceGrpc;
 import org.apache.skywalking.apm.util.RunnableWithExceptionProtection;
@@ -114,14 +118,14 @@ public class ArthasService implements BootService, GRPCChannelListener {
             return;
         }
 
-        CommandRequest.Builder builder = CommandRequest.newBuilder();
+        ArthasRequest.Builder builder = ArthasRequest.newBuilder();
         builder.setServiceName(Config.Agent.SERVICE_NAME);
         builder.setInstanceName(Config.Agent.INSTANCE_NAME);
 
-        final CommandResponse commandResponse = commandServiceBlockingStub.withDeadlineAfter(
-                GRPC_UPSTREAM_TIMEOUT, TimeUnit.SECONDS).get(builder.build());
+        final ArthasResponse arthasResponse = commandServiceBlockingStub.withDeadlineAfter(
+                GRPC_UPSTREAM_TIMEOUT, TimeUnit.SECONDS).getCommand(builder.build());
 
-        switch (commandResponse.getCommand()) {
+        switch (arthasResponse.getCommand()) {
             case START:
                 if (alreadyAttached()) {
                     LOGGER.warn("arthas already attached, no need start again");
@@ -133,7 +137,7 @@ public class ArthasService implements BootService, GRPCChannelListener {
                     if (StringUtil.isNotEmpty(Config.Arthas.HTTP_IP)) {
                         arthasIp = Config.Arthas.HTTP_IP;
                     } else {
-                        arthasIp = Objects.requireNonNull(IpUtils.getLocalHostExactAddress()).getHostAddress();
+                        arthasIp = Objects.requireNonNull(IpUtil.getLocalHostExactAddress()).getHostAddress();
                     }
 
                     if (StringUtil.isNotBlank(Config.Arthas.HTTP_PORT)) {
@@ -142,9 +146,11 @@ public class ArthasService implements BootService, GRPCChannelListener {
                         arthasHttpPort = SocketUtils.findAvailableTcpPort();
                     }
 
-                    ArthasUtils.startArthas(PidUtils.currentLongPid(), arthasTelnetPort, arthasIp, arthasHttpPort);
-                    LOGGER.info("start start arthas success, arthasIp: {}, telnetPort: {}, httpPort: {}", arthasIp, arthasTelnetPort, arthasHttpPort);
-                    sendLocalIpForOap(arthasIp, arthasHttpPort);
+//                    Boolean startFlag = ArthasUtil.startArthas(PidUtils.currentLongPid(), arthasTelnetPort, arthasIp, arthasHttpPort);
+//                    if (startFlag) {
+//                        LOGGER.info("start arthas success, arthasIp: {}, telnetPort: {}, httpPort: {}", arthasIp, arthasTelnetPort, arthasHttpPort);
+                        ProfileBaseHandle.submit(arthasResponse.getProfileTaskId(), arthasIp, arthasHttpPort);
+//                    }
                 } catch (Exception e) {
                     LOGGER.info("error when start arthas", e);
                     e.printStackTrace();
@@ -157,10 +163,13 @@ public class ArthasService implements BootService, GRPCChannelListener {
                 }
 
                 try {
-                    ArthasUtils.stopArthas(arthasIp, arthasTelnetPort);
-                    arthasTelnetPort = null;
-                    arthasIp = null;
-                    arthasHttpPort = null;
+                    Boolean stopFlag = ArthasUtil.stopArthas(arthasIp, arthasTelnetPort);
+                    if(stopFlag) {
+                        arthasTelnetPort = null;
+                        arthasIp = null;
+                        arthasHttpPort = null;
+                        LOGGER.info("stop arthas success, set params null");
+                    }
                 } catch (Exception e) {
                     LOGGER.info("error when stop arthas", e);
                 }
@@ -172,21 +181,10 @@ public class ArthasService implements BootService, GRPCChannelListener {
 
     private boolean alreadyAttached() {
         LOGGER.info("arthas telnet ip {} , arthas telnet port : {}", arthasIp, arthasTelnetPort);
-        return arthasTelnetPort != null && arthasIp != null
-                && !isTcpPortAvailable(arthasIp, arthasTelnetPort);
+        return arthasTelnetPort != null && arthasIp != null && !HttpUtil.isTcpPortAvailable(arthasIp, arthasTelnetPort);
     }
 
-    public static boolean isTcpPortAvailable(String ip, int port) {
-        try {
-            ServerSocket serverSocket = ServerSocketFactory.getDefault().createServerSocket(port, 1,
-                    InetAddress.getByName(ip));
-            serverSocket.close();
-            return true;
-        } catch (Exception ex) {
-            return false;
-        }
-    }
-
+    @Deprecated
     private void sendLocalIpForOap(String ip, Integer httpPort) {
         ArthasIpMessage.Builder message = ArthasIpMessage.newBuilder();
         message.setServiceName(Config.Agent.SERVICE_NAME);
