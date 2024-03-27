@@ -18,14 +18,14 @@
 
 package org.apache.skywalking.apm.agent.core.arthas.handler;
 
+import com.alibaba.fastjson2.JSONObject;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.skywalking.apm.agent.core.arthas.ArthasSender;
 import org.apache.skywalking.apm.agent.core.arthas.entity.dto.thread.ThreadDTO;
 import org.apache.skywalking.apm.agent.core.boot.BootService;
 import org.apache.skywalking.apm.agent.core.boot.ServiceManager;
-import org.apache.skywalking.apm.network.arthas.v3.ArthasSamplingData;
-import org.apache.skywalking.apm.network.arthas.v3.SamplingEnum;
-import org.apache.skywalking.apm.network.arthas.v3.StackData;
+import org.apache.skywalking.apm.network.arthas.v3.*;
+
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -45,6 +45,8 @@ public class ProfileSaveManager implements BootService {
         List<StackData> coverStackList = stackList.stream().map(x -> {
             StackData.Builder stackData = StackData.newBuilder();
             stackData.setCpu(x.getCpu())
+                    .setState(x.getState() == null ? "" : x.getState())
+                    .setGroup(x.getGroup() == null ? "" : x.getGroup())
                     .setDaemon(x.getDaemon())
                     .setDeltaTime(x.getDeltaTime())
                     .setId(x.getId())
@@ -55,6 +57,36 @@ public class ProfileSaveManager implements BootService {
             return stackData.build();
         }).collect(Collectors.toList());
         builder.addAllStackList(coverStackList);
+
+        ARTHAS_SENDER.offer(builder.build());
+        ARTHAS_SENDER.run();
+    }
+
+    public static void saveMemData(Integer profileTaskId, MemoryData memoryData, LocalDateTime dataSamplingTime) {
+        ArthasSamplingData.Builder builder = ArthasSamplingData.newBuilder();
+        builder.setDataSamplingTime(dataSamplingTime.format(FORMATTER));
+        builder.setProfileTaskId(profileTaskId);
+        builder.setSamplingEnum(SamplingEnum.MEM);
+        builder.setMemoryData(memoryData);
+
+        ARTHAS_SENDER.offer(builder.build());
+        ARTHAS_SENDER.run();
+    }
+
+    public static void saveSystemData(Integer profileTaskId,
+                                      JSONObject jvmInfo,
+                                      JSONObject sysEnv,
+                                      JSONObject sysProp,
+                                      JSONObject vmOption,
+                                      LocalDateTime dataSamplingTime) {
+        ArthasSamplingData.Builder builder = ArthasSamplingData.newBuilder();
+        builder.setDataSamplingTime(dataSamplingTime.format(FORMATTER));
+        builder.setProfileTaskId(profileTaskId);
+        builder.setSamplingEnum(SamplingEnum.SYSTEM);
+        SystemData.Builder systemDataBuilder = SystemData.newBuilder();
+        systemDataBuilder.setJvmInfo(jvmInfo.toString()).setSysEnv(sysEnv.toString())
+                .setSysProp(sysProp.toString()).setVmOption(vmOption.toString());
+        builder.setSystemData(systemDataBuilder.build());
 
         ARTHAS_SENDER.offer(builder.build());
         ARTHAS_SENDER.run();
@@ -80,7 +112,4 @@ public class ProfileSaveManager implements BootService {
 
     }
 
-//    public void saveMemData(Integer profileTaskId, MemoryVO memoryVO, String dataSamplingTime) {
-//        redisUtil.hSet(RedisConstant.PROFILE_MEM_CHART_KEY + profileTaskId, dataSamplingTime, memoryVO);
-//    }
 }

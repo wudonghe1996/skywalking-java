@@ -16,19 +16,26 @@
  *
  */
 
-package org.apache.skywalking.apm.agent.core.arthas;
+package org.apache.skywalking.apm.agent.core.arthas.enums;
 
-import org.apache.skywalking.apm.agent.core.arthas.handler.ProfileBaseHandle;
-import org.apache.skywalking.apm.agent.core.boot.ServiceManager;
+import lombok.Getter;
 
-public class ArthasTest {
+public enum MemoryName {
 
-    public static void main(String[] args) throws InterruptedException {
-        ServiceManager.INSTANCE.boot();
-        ProfileBaseHandle.submit(2031950, "172.21.0.70", 41136);
-        Thread.sleep(3000L);
-        ArthasSender arthasSender = ServiceManager.INSTANCE.findService(ArthasSender.class);
-        arthasSender.run();
+    HEAP("heap"),
+    EDEN_SPACE("eden_space"),
+    SURVIVOR_SPACE("survivor_space"),
+    OLD_GEN("old_gen"),
+    NON_HEAP("nonheap"),
+    CODE_CACHE("code_cache"),
+    METASPACE("metaspace"),
+    COMPRESSED_CLASS_SPACE("compressed_class_space"),
+    ;
 
+    @Getter
+    private final String name;
+
+    MemoryName(String name) {
+        this.name = name;
     }
 }

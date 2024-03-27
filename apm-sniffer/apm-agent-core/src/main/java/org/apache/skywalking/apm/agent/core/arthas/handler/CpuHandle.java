@@ -30,7 +30,7 @@ import org.apache.skywalking.apm.agent.core.arthas.factory.impl.cpu.Thread;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
-import java.time.ZoneOffset;
+import java.time.ZoneId;
 import java.util.List;
 
 @Slf4j
@@ -53,7 +53,7 @@ public class CpuHandle {
                     }
                     BigDecimal scaleCpu = new BigDecimal(cpu);
                     cpu = scaleCpu.setScale(2, RoundingMode.HALF_UP).doubleValue();
-                    ProfileSaveManager.saveCpuData(profileTaskId, cpu, threadDataList, LocalDateTime.now(ZoneOffset.UTC));
+                    ProfileSaveManager.saveCpuData(profileTaskId, cpu, threadDataList, LocalDateTime.now(ZoneId.of("GMT+8")));
                 }
             });
         } catch (Exception e) {

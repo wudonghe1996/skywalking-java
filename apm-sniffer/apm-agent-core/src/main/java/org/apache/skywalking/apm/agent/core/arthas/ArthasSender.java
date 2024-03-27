@@ -62,7 +62,7 @@ public class ArthasSender implements BootService, GRPCChannelListener {
     }
 
     public void run() {
-        if (status == GRPCChannelStatus.CONNECTED) {
+//        if (status == GRPCChannelStatus.CONNECTED) {
             try {
                 ArthasDataRequest.Builder builder = ArthasDataRequest.newBuilder();
                 LinkedList<ArthasSamplingData> buffer = new LinkedList<>();
@@ -76,7 +76,7 @@ public class ArthasSender implements BootService, GRPCChannelListener {
                 LOGGER.error(t, "send process machine metrics to Collector fail.");
                 ServiceManager.INSTANCE.findService(GRPCChannelManager.class).reportError(t);
             }
-        }
+//        }
     }
 
     @Override

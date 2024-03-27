@@ -40,8 +40,6 @@ public class MemoryDTO {
 
         private List<Memory> nonheap;
 
-//        private List<Memory> buffer_pool;
-
         @Data
         public static class Memory {
 
