@@ -18,7 +18,6 @@
 
 package org.apache.skywalking.apm.agent.core.arthas;
 
-import com.taobao.arthas.common.PidUtils;
 import com.taobao.arthas.common.SocketUtils;
 import io.grpc.Channel;
 import org.apache.skywalking.apm.agent.core.arthas.handler.ProfileBaseHandle;
@@ -43,9 +42,6 @@ import org.apache.skywalking.apm.network.dayu.v3.DayuServiceGrpc;
 import org.apache.skywalking.apm.util.RunnableWithExceptionProtection;
 import org.apache.skywalking.apm.util.StringUtil;
 
-import javax.net.ServerSocketFactory;
-import java.net.InetAddress;
-import java.net.ServerSocket;
 import java.util.Objects;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledFuture;
@@ -149,7 +145,7 @@ public class ArthasService implements BootService, GRPCChannelListener {
 //                    Boolean startFlag = ArthasUtil.startArthas(PidUtils.currentLongPid(), arthasTelnetPort, arthasIp, arthasHttpPort);
 //                    if (startFlag) {
 //                        LOGGER.info("start arthas success, arthasIp: {}, telnetPort: {}, httpPort: {}", arthasIp, arthasTelnetPort, arthasHttpPort);
-                        ProfileBaseHandle.submit(arthasResponse.getProfileTaskId(), arthasIp, arthasHttpPort);
+                    ProfileBaseHandle.submit(arthasResponse.getProfileTaskId(), arthasIp, arthasHttpPort);
 //                    }
                 } catch (Exception e) {
                     LOGGER.info("error when start arthas", e);
@@ -164,7 +160,7 @@ public class ArthasService implements BootService, GRPCChannelListener {
 
                 try {
                     Boolean stopFlag = ArthasUtil.stopArthas(arthasIp, arthasTelnetPort);
-                    if(stopFlag) {
+                    if (stopFlag) {
                         arthasTelnetPort = null;
                         arthasIp = null;
                         arthasHttpPort = null;

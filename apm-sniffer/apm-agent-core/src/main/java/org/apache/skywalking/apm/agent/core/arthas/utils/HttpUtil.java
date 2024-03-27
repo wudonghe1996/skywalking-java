@@ -1,3 +1,21 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ */
+
 package org.apache.skywalking.apm.agent.core.arthas.utils;
 
 import org.apache.http.HttpEntity;
@@ -23,42 +41,41 @@ import java.net.ServerSocket;
 import java.nio.charset.StandardCharsets;
 
 public class HttpUtil {
-    private static PoolingHttpClientConnectionManager connectionManager = null;
-    private static CloseableHttpClient client;
+    private static PoolingHttpClientConnectionManager CONNECTION_MANAGER = null;
+    private static CloseableHttpClient CLIENT;
     private static final Integer MAX_TOTAL = 50;
     private static final Integer DEFAULT_MAX_TOTAL = 10;
 
     private static void init() {
         synchronized (HttpUtil.class) {
-            if (client == null) {
-                connectionManager = new PoolingHttpClientConnectionManager();
+            if (CLIENT == null) {
+                CONNECTION_MANAGER = new PoolingHttpClientConnectionManager();
                 ConnectionConfig connConfig = ConnectionConfig.custom().setCharset(StandardCharsets.UTF_8).build();
                 SocketConfig socketConfig = SocketConfig.custom().setSoTimeout(5000).build();
-                connectionManager.setDefaultConnectionConfig(connConfig);
-                connectionManager.setDefaultSocketConfig(socketConfig);
-                connectionManager.setMaxTotal(MAX_TOTAL);
-                connectionManager.setDefaultMaxPerRoute(DEFAULT_MAX_TOTAL);
+                CONNECTION_MANAGER.setDefaultConnectionConfig(connConfig);
+                CONNECTION_MANAGER.setDefaultSocketConfig(socketConfig);
+                CONNECTION_MANAGER.setMaxTotal(MAX_TOTAL);
+                CONNECTION_MANAGER.setDefaultMaxPerRoute(DEFAULT_MAX_TOTAL);
                 RequestConfig config = RequestConfig.custom().setConnectTimeout(30000)
                         .setConnectionRequestTimeout(500)
                         .setSocketTimeout(30000)
                         .build();
                 HttpClientBuilder builder = HttpClients.custom();
-                builder.setConnectionManager(connectionManager).setConnectionManagerShared(true);
+                builder.setConnectionManager(CONNECTION_MANAGER).setConnectionManagerShared(true);
                 builder.setKeepAliveStrategy(new DefaultConnectionKeepAliveStrategy());
-                client = builder.setDefaultRequestConfig(config).build();
+                CLIENT = builder.setDefaultRequestConfig(config).build();
             }
         }
     }
 
     private static CloseableHttpClient getClientFromHttpPool() {
-        if (client == null) {
+        if (CLIENT == null) {
             init();
         }
-        return client;
+        return CLIENT;
     }
 
     public static String doPostJson(String url, String param) throws IOException {
-        // 参数设置
         HttpPost post = new HttpPost(url);
         post.setEntity(new StringEntity(param, ContentType.APPLICATION_JSON));
         CloseableHttpClient httpClient = getClientFromHttpPool();
