@@ -16,16 +16,27 @@
  *
  */
 
-package org.apache.skywalking.apm.agent.core.arthas.factory.impl.cpu;
+package org.apache.skywalking.apm.agent.core.arthas.handler.realtime;
 
+import lombok.extern.slf4j.Slf4j;
 import org.apache.skywalking.apm.agent.core.arthas.entity.dto.FlameDiagramDTO;
 import org.apache.skywalking.apm.agent.core.arthas.factory.ArthasHttpFactory;
-import org.apache.skywalking.apm.agent.core.arthas.utils.FileUtils;
-import java.io.IOException;
+import org.apache.skywalking.apm.agent.core.arthas.factory.impl.cpu.FlameDiagram;
 
-public class GetFlameDiagram extends ArthasHttpFactory<FlameDiagramDTO, String> {
-    @Override
-    public String execute(FlameDiagramDTO flameDiagramDTO) throws IOException {
-        return FileUtils.readFileNewLineWithBr(flameDiagramDTO.getFilePath(), "\n");
+@Slf4j
+public class FlameDiagramSamplingHandle {
+
+    private static final Integer DEFAULT_DURATION = 3;
+
+    public void sampling(String command) {
+        try {
+            ArthasHttpFactory<FlameDiagramDTO, Boolean> httpFactory = new FlameDiagram();
+            httpFactory.execute(new FlameDiagramDTO().setDuration(DEFAULT_DURATION).setFilePath(command));
+        } catch (Exception e) {
+            log.error("sampling flame diagram data fail, {}", e.getMessage());
+            e.printStackTrace();
+        }
     }
+
+
 }

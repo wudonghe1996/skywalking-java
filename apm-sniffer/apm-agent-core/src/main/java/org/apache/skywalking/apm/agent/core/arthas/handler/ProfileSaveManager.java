@@ -92,6 +92,19 @@ public class ProfileSaveManager implements BootService {
         ARTHAS_SENDER.run();
     }
 
+    public static void saveClassData(Integer profileTaskId, List<String> classNameList, LocalDateTime dataSamplingTime) {
+        ArthasSamplingData.Builder builder = ArthasSamplingData.newBuilder();
+        builder.setDataSamplingTime(dataSamplingTime.format(FORMATTER));
+        builder.setProfileTaskId(profileTaskId);
+        builder.setSamplingEnum(SamplingEnum.CLASS);
+        ClassData.Builder classDataBuilder = ClassData.newBuilder();
+        classDataBuilder.addAllClassName(classNameList);
+        builder.setClassData(classDataBuilder.build());
+        ARTHAS_SENDER.offer(builder.build());
+        ARTHAS_SENDER.run();
+    }
+
+
     @Override
     public void prepare() throws Throwable {
         ARTHAS_SENDER = ServiceManager.INSTANCE.findService(ArthasSender.class);

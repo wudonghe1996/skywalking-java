@@ -38,6 +38,10 @@ public abstract class ArthasHttpFactory<T, R> {
         ARTHAS_HTTP_URL = sb.toString();
     }
 
+    public static String getArthasHttpUrl(){
+        return ARTHAS_HTTP_URL;
+    }
+
     public abstract R execute(T t) throws IOException;
 
 }

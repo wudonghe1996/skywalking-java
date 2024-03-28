@@ -41,7 +41,6 @@ import net.bytebuddy.matcher.ElementMatcher;
 import net.bytebuddy.matcher.ElementMatchers;
 import net.bytebuddy.utility.JavaModule;
 import org.apache.skywalking.apm.agent.bytebuddy.SWMethodGraphCompilerDelegate;
-import org.apache.skywalking.apm.agent.bytebuddy.SWMethodNameTransformer;
 import org.apache.skywalking.apm.agent.core.boot.AgentPackageNotFoundException;
 import org.apache.skywalking.apm.agent.core.boot.ServiceManager;
 import org.apache.skywalking.apm.agent.core.conf.Config;

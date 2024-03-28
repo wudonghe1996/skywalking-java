@@ -16,29 +16,24 @@
  *
  */
 
-package org.apache.skywalking.apm.agent.core.arthas.entity.dto;
+package org.apache.skywalking.apm.agent.core.arthas.handler.realtime;
 
-import lombok.Data;
-import lombok.experimental.Accessors;
-import java.util.List;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.skywalking.apm.agent.core.arthas.utils.FileUtils;
 
-@Data
-@Accessors(chain = true)
-public class ClassNameDTO {
+@Slf4j
+public class FlameDiagramDataHandle {
 
-    private List<String> classNames;
+    public String sampling(String command) {
+        String result = "";
+        try {
+            result = FileUtils.readFileNewLineWithBr(command, "\n");
+        } catch (Exception e) {
+            log.error("get flame diagram data fail, {}", e.getMessage());
+            e.printStackTrace();
+        }
+        return result;
+    }
 
-    private Boolean detailed;
 
-    private Integer jobId;
-
-    private Integer segment;
-
-    private String type;
-
-    private Boolean withField;
-
-    private Integer rowCount;
-
-    private Integer statusCode;
 }

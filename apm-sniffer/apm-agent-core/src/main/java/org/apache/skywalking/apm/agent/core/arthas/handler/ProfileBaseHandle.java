@@ -37,10 +37,12 @@ public class ProfileBaseHandle {
     private static final MemHandle MEM_HANDLE = new MemHandle();
     private static final SystemHandle SYSTEM_HANDLE = new SystemHandle();
 
-    public static void submit(Integer profileTaskId, String arthasIp, Integer arthasPort) {
+    private static final ClassHandle CLASS_HANDLE = new ClassHandle();
+
+    public static void submit(Integer profileTaskId) {
         if (Objects.isNull(PROFILE_FUTURE)) {
-            ArthasHttpFactory.init(arthasIp, arthasPort);
             getSystemData(profileTaskId);
+            getClassNameData(profileTaskId);
             PROFILE_FUTURE = PROFILE_TASK_SCHEDULE_EXECUTOR.scheduleAtFixedRate(() -> startSampling(profileTaskId), 0, 1, TimeUnit.SECONDS);
         } else {
             throw new ArthasException("arthas is start, can't reopening");
@@ -61,6 +63,10 @@ public class ProfileBaseHandle {
 
     private static void getSystemData(Integer profileTaskId) {
         SYSTEM_HANDLE.sampling(profileTaskId);
+    }
+
+    private static void getClassNameData(Integer profileTaskId) {
+        CLASS_HANDLE.sampling(profileTaskId);
     }
 
 }

@@ -16,7 +16,7 @@
  *
  */
 
-package org.apache.skywalking.apm.agent.core.arthas.profile;
+package org.apache.skywalking.apm.agent.core.arthas.utils;
 
 import java.io.BufferedReader;
 import java.io.File;

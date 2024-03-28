@@ -28,9 +28,10 @@ import org.apache.skywalking.apm.agent.core.logging.api.LogManager;
 import org.apache.skywalking.apm.agent.core.remote.GRPCChannelListener;
 import org.apache.skywalking.apm.agent.core.remote.GRPCChannelManager;
 import org.apache.skywalking.apm.agent.core.remote.GRPCChannelStatus;
-import org.apache.skywalking.apm.network.arthas.v3.ArthasCommandServiceGrpc;
 import org.apache.skywalking.apm.network.arthas.v3.ArthasDataRequest;
 import org.apache.skywalking.apm.network.arthas.v3.ArthasSamplingData;
+import org.apache.skywalking.apm.network.arthas.v3.ArthasServiceGrpc;
+
 import java.util.LinkedList;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -40,7 +41,7 @@ import static org.apache.skywalking.apm.agent.core.conf.Config.Collector.GRPC_UP
 public class ArthasSender implements BootService, GRPCChannelListener {
     private static final ILog LOGGER = LogManager.getLogger(ArthasSender.class);
     private volatile GRPCChannelStatus status = GRPCChannelStatus.DISCONNECT;
-    private volatile ArthasCommandServiceGrpc.ArthasCommandServiceBlockingStub stub = null;
+    private volatile ArthasServiceGrpc.ArthasServiceBlockingStub stub = null;
     private LinkedBlockingQueue<ArthasSamplingData> queue;
 
     @Override
@@ -62,7 +63,7 @@ public class ArthasSender implements BootService, GRPCChannelListener {
     }
 
     public void run() {
-//        if (status == GRPCChannelStatus.CONNECTED) {
+        if (status == GRPCChannelStatus.CONNECTED) {
             try {
                 ArthasDataRequest.Builder builder = ArthasDataRequest.newBuilder();
                 LinkedList<ArthasSamplingData> buffer = new LinkedList<>();
@@ -76,14 +77,14 @@ public class ArthasSender implements BootService, GRPCChannelListener {
                 LOGGER.error(t, "send process machine metrics to Collector fail.");
                 ServiceManager.INSTANCE.findService(GRPCChannelManager.class).reportError(t);
             }
-//        }
+        }
     }
 
     @Override
     public void statusChanged(GRPCChannelStatus status) {
         if (GRPCChannelStatus.CONNECTED.equals(status)) {
             Channel channel = ServiceManager.INSTANCE.findService(GRPCChannelManager.class).getChannel();
-            stub = ArthasCommandServiceGrpc.newBlockingStub(channel);
+            stub = ArthasServiceGrpc.newBlockingStub(channel);
         }
         this.status = status;
     }
