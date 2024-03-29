@@ -31,7 +31,8 @@ public class FlameDiagramSamplingHandle {
     public void sampling(String command) {
         try {
             ArthasHttpFactory<FlameDiagramDTO, Boolean> httpFactory = new FlameDiagram();
-            httpFactory.execute(new FlameDiagramDTO().setDuration(DEFAULT_DURATION).setFilePath(command));
+            String filePath = System.getProperty("user.dir") + command;
+            httpFactory.execute(new FlameDiagramDTO().setDuration(DEFAULT_DURATION).setFilePath(filePath));
         } catch (Exception e) {
             log.error("sampling flame diagram data fail, {}", e.getMessage());
             e.printStackTrace();

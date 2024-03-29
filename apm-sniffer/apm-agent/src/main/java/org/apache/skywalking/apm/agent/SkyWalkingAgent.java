@@ -113,7 +113,8 @@ public class SkyWalkingAgent {
 
         // create arthas temp dir
         try {
-            FileUtils.makeLocalDir(new File(Config.Arthas.TEMP_FILE_PATH));
+            String arthasTempDir = System.getProperty("user.dir") + Config.Arthas.TEMP_FILE_PATH;
+            FileUtils.makeLocalDir(new File(arthasTempDir));
         } catch (Exception e) {
             LOGGER.error(e, "ServiceManagementClient mkdir arthas dir fail.");
         }

@@ -39,8 +39,6 @@ org.apache.skywalking.apm.agent.core.ServiceInstanceGenerator
 
 # Arthas启动停止
 org.apache.skywalking.apm.agent.core.arthas.ArthasService
-# 获取火焰图
-org.apache.skywalking.apm.agent.core.arthas.profile.FlameDiagramHandler
 # Dayu数据上报
 org.apache.skywalking.apm.agent.core.dayu.DayuSender
 # Arthas数据上报

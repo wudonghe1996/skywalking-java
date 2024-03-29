@@ -19,6 +19,7 @@
 package org.apache.skywalking.apm.agent.core.arthas;
 
 import com.alibaba.fastjson2.JSONObject;
+import com.taobao.arthas.common.PidUtils;
 import com.taobao.arthas.common.SocketUtils;
 import io.grpc.Channel;
 import org.apache.skywalking.apm.agent.core.arthas.entity.dto.JadDTO;
@@ -163,7 +164,7 @@ public class ArthasService implements BootService, GRPCChannelListener {
         }
     }
 
-    private void startArthas(Integer profileTaskId){
+    private void startArthas(Integer profileTaskId) {
         try {
             arthasTelnetPort = SocketUtils.findAvailableTcpPort();
             if (StringUtil.isNotEmpty(Config.Arthas.HTTP_IP)) {
@@ -178,21 +179,19 @@ public class ArthasService implements BootService, GRPCChannelListener {
                 arthasHttpPort = SocketUtils.findAvailableTcpPort();
             }
 
-            // TODO
-//                    Boolean startFlag = ArthasUtil.startArthas(PidUtils.currentLongPid(), arthasTelnetPort, arthasIp, arthasHttpPort);
-//                    if (startFlag) {
-//                        LOGGER.info("start arthas success, arthasIp: {}, telnetPort: {}, httpPort: {}", arthasIp, arthasTelnetPort, arthasHttpPort);
-
-            ArthasHttpFactory.init(arthasIp, arthasHttpPort);
-            ProfileBaseHandle.submit(profileTaskId);
-//                    }
+            Boolean startFlag = ArthasUtil.startArthas(PidUtils.currentLongPid(), arthasTelnetPort, arthasIp, arthasHttpPort);
+            if (startFlag) {
+                LOGGER.info("start arthas success, arthasIp: {}, telnetPort: {}, httpPort: {}", arthasIp, arthasTelnetPort, arthasHttpPort);
+                ArthasHttpFactory.init(arthasIp, arthasHttpPort);
+                ProfileBaseHandle.submit(profileTaskId);
+            }
         } catch (Exception e) {
             LOGGER.info("error when start arthas", e);
             e.printStackTrace();
         }
     }
 
-    private void stopArthas(){
+    private void stopArthas() {
         try {
             Boolean stopFlag = ArthasUtil.stopArthas(arthasIp, arthasTelnetPort);
             if (stopFlag) {
@@ -211,12 +210,12 @@ public class ArthasService implements BootService, GRPCChannelListener {
         return arthasTelnetPort != null && arthasIp != null && !HttpUtil.isTcpPortAvailable(arthasIp, arthasTelnetPort);
     }
 
-    private void getRealTimeCommand(){
+    private void getRealTimeCommand() {
         if (!GRPCChannelStatus.CONNECTED.equals(status) || arthasServiceBlockingStub == null) {
             return;
         }
 
-        if(StringUtil.isEmpty(ArthasHttpFactory.getArthasHttpUrl())){
+        if (StringUtil.isEmpty(ArthasHttpFactory.getArthasHttpUrl())) {
             return;
         }
 
@@ -230,7 +229,7 @@ public class ArthasService implements BootService, GRPCChannelListener {
         realTimeDataList.forEach(realTimeData -> {
             RealTimeCommand realTimeCommand = realTimeData.getRealTimeCommand();
             String command = realTimeData.getCommand();
-            switch (realTimeCommand){
+            switch (realTimeCommand) {
                 case CPU_CODE_STACK:
                     ThreadStackDTO.ThreadInfo cpuCodeStack = getCpuCodeStack(command);
                     sendRealTimeDataForOap(JSONObject.toJSONString(cpuCodeStack), RealTimeCommand.CPU_CODE_STACK);
@@ -250,23 +249,23 @@ public class ArthasService implements BootService, GRPCChannelListener {
         });
     }
 
-    private ThreadStackDTO.ThreadInfo getCpuCodeStack(String command){
+    private ThreadStackDTO.ThreadInfo getCpuCodeStack(String command) {
         return CPU_CODE_STACK_HANDLER.sampling(command);
     }
 
-    private JadDTO getJad(String command){
+    private JadDTO getJad(String command) {
         return JAD_HANDLER.sampling(command);
     }
 
-    private void samplingFlameDiagram(String command){
+    private void samplingFlameDiagram(String command) {
         FLAME_DIAGRAM_SAMPLING_HANDLE.sampling(command);
     }
 
-    private String getFlameDiagram(String command){
+    private String getFlameDiagram(String command) {
         return FLAME_DIAGRAM_DATA_HANDLE.sampling(command);
     }
 
-    public void sendRealTimeDataForOap(String data, RealTimeCommand command){
+    public void sendRealTimeDataForOap(String data, RealTimeCommand command) {
         RealTimeRequest.Builder request = RealTimeRequest.newBuilder();
         request.setServiceName(Config.Agent.SERVICE_NAME);
         request.setInstanceName(Config.Agent.INSTANCE_NAME);
