@@ -198,6 +198,7 @@ public class ArthasService implements BootService, GRPCChannelListener {
                 arthasTelnetPort = null;
                 arthasIp = null;
                 arthasHttpPort = null;
+                ProfileBaseHandle.cancel();
                 LOGGER.info("stop arthas success, set params null");
             }
         } catch (Exception e) {

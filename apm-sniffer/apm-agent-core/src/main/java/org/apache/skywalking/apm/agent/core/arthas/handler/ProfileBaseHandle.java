@@ -41,9 +41,13 @@ public class ProfileBaseHandle {
 
     public static void submit(Integer profileTaskId) {
         if (Objects.isNull(PROFILE_FUTURE)) {
-            getSystemData(profileTaskId);
-            getClassNameData(profileTaskId);
-            PROFILE_FUTURE = PROFILE_TASK_SCHEDULE_EXECUTOR.scheduleAtFixedRate(() -> startSampling(profileTaskId), 0, 1, TimeUnit.SECONDS);
+            if (Objects.nonNull(profileTaskId)) {
+                getSystemData(profileTaskId);
+                getClassNameData(profileTaskId);
+                PROFILE_FUTURE = PROFILE_TASK_SCHEDULE_EXECUTOR.scheduleAtFixedRate(() -> startSampling(profileTaskId), 0, 3, TimeUnit.SECONDS);
+            } else {
+                throw new ArthasException("profileTaskId is null, start arthas error");
+            }
         } else {
             throw new ArthasException("arthas is start, can't reopening");
         }
