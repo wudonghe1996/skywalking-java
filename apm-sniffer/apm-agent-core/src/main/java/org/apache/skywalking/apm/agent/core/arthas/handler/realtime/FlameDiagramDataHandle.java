@@ -27,7 +27,8 @@ public class FlameDiagramDataHandle {
     public String sampling(String command) {
         String result = "";
         try {
-            result = FileUtils.readFileNewLineWithBr(command, "\n");
+            String filePath = System.getProperty("user.dir") + command;
+            result = FileUtils.readFileNewLineWithBr(filePath, "");
         } catch (Exception e) {
             log.error("get flame diagram data fail, {}", e.getMessage());
             e.printStackTrace();
