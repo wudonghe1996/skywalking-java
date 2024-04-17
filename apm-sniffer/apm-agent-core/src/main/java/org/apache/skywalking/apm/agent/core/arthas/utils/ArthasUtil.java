@@ -33,7 +33,7 @@ public class ArthasUtil {
 
     private static final ILog LOGGER = LogManager.getLogger(ArthasUtil.class);
 
-    public static Boolean startArthas(long pid, int telnetPort, String ip, Integer httpPort)
+    public static void startArthas(long pid, int telnetPort, String ip, Integer httpPort)
             throws SecurityException, IllegalArgumentException, AgentPackageNotFoundException {
         // find arthas home
         File arthasHomeDir = getArthasHome();
@@ -69,11 +69,9 @@ public class ArthasUtil {
         }
 
         LOGGER.info("Try to attach process " + pid);
-        LOGGER.debug("Start arthas-core.jar args: " + attachArgs);
-        boolean flag = ProcessUtil.runJarWithArgs(attachArgs);
+        LOGGER.info("Start arthas-core.jar args: " + attachArgs);
+        ProcessUtil.runJarWithArgs(attachArgs);
         LOGGER.info("Attach process {} success.", pid);
-
-        return flag;
     }
 
     public static Boolean stopArthas(String ip, int telnetPort) throws Exception {
@@ -94,7 +92,7 @@ public class ArthasUtil {
         telnetArgs.add(ip);
         telnetArgs.add("" + telnetPort);
 
-        LOGGER.debug("Start arthas-client.jar args: " + telnetArgs);
+        LOGGER.info("Stop arthas-client.jar args: " + telnetArgs);
         Boolean flag = ProcessUtil.runJarWithArgs(telnetArgs);
 
         LOGGER.info("Stop arthas process success.");

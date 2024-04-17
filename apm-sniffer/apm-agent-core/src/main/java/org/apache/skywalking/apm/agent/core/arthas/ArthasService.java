@@ -179,12 +179,13 @@ public class ArthasService implements BootService, GRPCChannelListener {
                 arthasHttpPort = SocketUtils.findAvailableTcpPort();
             }
 
-            Boolean startFlag = ArthasUtil.startArthas(PidUtils.currentLongPid(), arthasTelnetPort, arthasIp, arthasHttpPort);
-            if (startFlag) {
-                LOGGER.info("start arthas success, arthasIp: {}, telnetPort: {}, httpPort: {}", arthasIp, arthasTelnetPort, arthasHttpPort);
-                ArthasHttpFactory.init(arthasIp, arthasHttpPort);
-                ProfileBaseHandle.submit(profileTaskId);
+            try{
+                ArthasUtil.startArthas(PidUtils.currentLongPid(), arthasTelnetPort, arthasIp, arthasHttpPort);
+            } catch(Exception ignored){
             }
+            LOGGER.info("start arthas success, arthasIp: {}, telnetPort: {}, httpPort: {}", arthasIp, arthasTelnetPort, arthasHttpPort);
+            ArthasHttpFactory.init(arthasIp, arthasHttpPort);
+            ProfileBaseHandle.submit(profileTaskId);
         } catch (Exception e) {
             LOGGER.info("error when start arthas", e);
             e.printStackTrace();

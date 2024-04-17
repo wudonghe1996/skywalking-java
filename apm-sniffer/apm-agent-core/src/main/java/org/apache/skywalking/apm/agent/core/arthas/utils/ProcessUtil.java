@@ -21,6 +21,8 @@ package org.apache.skywalking.apm.agent.core.arthas.utils;
 import com.taobao.arthas.common.AnsiLog;
 import com.taobao.arthas.common.IOUtils;
 import com.taobao.arthas.common.JavaVersionUtils;
+import org.apache.skywalking.apm.agent.core.logging.api.ILog;
+import org.apache.skywalking.apm.agent.core.logging.api.LogManager;
 
 import java.io.File;
 import java.io.IOException;
@@ -32,6 +34,7 @@ import java.util.List;
 
 public class ProcessUtil {
 
+    private static final ILog LOGGER = LogManager.getLogger(ProcessUtil.class);
     private static String FOUND_JAVA_HOME = null;
 
     public static Boolean runJarWithArgs(List<String> attachArgs) {
@@ -53,7 +56,7 @@ public class ProcessUtil {
             }
         }
 
-        List<String> command = new ArrayList<String>();
+        List<String> command = new ArrayList<>();
         command.add(javaPath.getAbsolutePath());
 
         if (toolsJar != null && toolsJar.exists()) {
@@ -62,6 +65,7 @@ public class ProcessUtil {
 
         command.addAll(attachArgs);
 
+        LOGGER.info("start arthas process command : {}", command);
         ProcessBuilder pb = new ProcessBuilder(command);
         pb.environment().put("JAVA_TOOL_OPTIONS", "");
         try {

@@ -33,6 +33,8 @@ import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.apache.http.util.EntityUtils;
+import org.apache.skywalking.apm.agent.core.logging.api.ILog;
+import org.apache.skywalking.apm.agent.core.logging.api.LogManager;
 
 import javax.net.ServerSocketFactory;
 import java.io.IOException;
@@ -45,6 +47,7 @@ public class HttpUtil {
     private static CloseableHttpClient CLIENT;
     private static final Integer MAX_TOTAL = 50;
     private static final Integer DEFAULT_MAX_TOTAL = 10;
+    private static final ILog LOGGER = LogManager.getLogger(HttpUtil.class);
 
     private static void init() {
         synchronized (HttpUtil.class) {
@@ -61,7 +64,7 @@ public class HttpUtil {
                         .setSocketTimeout(30000)
                         .build();
                 HttpClientBuilder builder = HttpClients.custom();
-                builder.setConnectionManager(CONNECTION_MANAGER).setConnectionManagerShared(true);
+                builder.setConnectionManager(CONNECTION_MANAGER);
                 builder.setKeepAliveStrategy(new DefaultConnectionKeepAliveStrategy());
                 CLIENT = builder.setDefaultRequestConfig(config).build();
             }
